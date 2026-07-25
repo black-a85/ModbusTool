@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
+# Local outputs / scratch
+selftest.txt
+*.log
+device_profile*.json
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
