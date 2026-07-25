@@ -1,0 +1,64 @@
+name: Build Windows exe
+
+# Push a version tag (e.g. v1.0.0) and this builds ModbusTool.exe on a Windows
+# runner, verifies the bundle, and attaches it to a GitHub Release automatically.
+# You can also run it manually (Actions tab -> Run workflow) to get the exe as a
+# downloadable build artifact without cutting a release.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write        # needed for the release step to upload the asset
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Build single-file exe
+        run: >
+          pyinstaller --noconfirm --clean --onefile --windowed --name ModbusTool
+          --collect-all pymodbus --collect-all serial --collect-all pdfplumber
+          --collect-all pdfminer --collect-all pypdfium2 --collect-all pypdf
+          --collect-all anthropic --collect-all openai --collect-all pydantic
+          --collect-all pydantic_core --collect-all httpx --collect-all httpcore
+          --collect-all certifi --collect-all jiter --collect-all distro
+          main.py
+
+      - name: Verify the bundle (self-test imports every dependency)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath dist\ModbusTool.exe `
+               -ArgumentList '--selftest','selftest.txt' -Wait -PassThru
+          Get-Content selftest.txt
+          if ($p.ExitCode -ne 0) { throw "selftest exited with $($p.ExitCode)" }
+          if (Select-String -Path selftest.txt -Pattern 'FAIL' -Quiet) {
+            throw "a bundled module failed to import"
+          }
+
+      - name: Upload build artifact (always)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ModbusTool-exe
+          path: dist/ModbusTool.exe
+
+      - name: Attach exe to the release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/ModbusTool.exe
+          generate_release_notes: true

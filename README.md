@@ -259,6 +259,20 @@ dist\ModbusTool.exe --selftest selftest.txt
 
 Exit code 0 = all good; then read `selftest.txt` for the per-module report.
 
+### Automated releases (GitHub Actions)
+
+You don't have to build or upload the exe by hand. Pushing a version tag runs
+`.github/workflows/build.yml`, which builds `ModbusTool.exe` on a Windows runner,
+self-tests the bundle, and attaches it to a new GitHub Release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The workflow also runs from the **Actions** tab (*Run workflow*) to produce the
+exe as a downloadable build artifact without cutting a release.
+
 ## Notes
 
 - On Linux, serial access may require adding your user to the `dialout` group.
